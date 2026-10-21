@@ -42,9 +42,9 @@ HEADER_CRC_OFFSET = 4  # Offset of the CRC in the file
 HEADER_CRC_OFFSET_64 = 8
 
 PAKS_CRC_OFFSET = 0x04  # File CRC, covers everything from PAKS_CRC_START to the end of the file
-PAKS_CRC_START = 0x08
+PAKS_CRC_START = 0x08  # First byte covered by the file CRC (file_size field), i.e. right after the file CRC
 PAKS_BOARD_CRC_OFFSET = 0x18  # Board CRC, covers everything from PAKS_BOARD_CRC_START to the end of the board
-PAKS_BOARD_CRC_START = 0x1c
+PAKS_BOARD_CRC_START = 0x1c  # First byte covered by the board CRC (hwver field), i.e. right after the board CRC
 
 
 def paks_crc(data, crc=0):
@@ -354,12 +354,11 @@ def copy(fin, fout, length):
 
 def update_paks_crc(filename):
     """Recompute the board and file CRCs of a PAKS file and store them in its header.
-
-    Section CRCs are not touched. Note: the PAKS file is modified by this operation.
+    Section CRCs are not touched.
     """
     with PAK.from_file(filename) as pak:
         if pak.header.nb_boards != 1:
-            raise Exception(f"Unsupported PAKS file: {pak.header.nb_boards} boards")
+            raise Exception(f"Unsupported PAKS file containing multiple boards: {pak.header.nb_boards} boards")
         board_crc = pak.calc_board_crc()
     with open(filename, "r+b") as f:
         f.seek(PAKS_BOARD_CRC_OFFSET)
@@ -383,7 +382,7 @@ def replace_paks_section(filename, section_file: Path, section_num, output_file:
     """
     with PAK.from_file(filename) as pak:
         if pak.header.nb_boards != 1:
-            raise Exception(f"Unsupported PAKS file: {pak.header.nb_boards} boards")
+            raise Exception(f"Unsupported PAKS file containing multiple boards: {pak.header.nb_boards} boards")
         if section_num < 0 or section_num >= len(pak.sections):
             raise Exception(f"Invalid section number: {section_num} (should be between 0 and {len(pak.sections) - 1})")
         replaced = pak.sections[section_num]

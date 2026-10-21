@@ -147,24 +147,20 @@ class PAKPartition(_Base):
 
 
 class PAKSHeader(_Base):
-    """File header (0x14 bytes) immediately followed by the header of the first (and only) board (0x54 bytes).
-
-    All checksums use the CRC-32 table but no initial or final XOR (see paks_crc).
-    """
     _fields_ = [
         # File header
         ("_magic", c_uint32),  # "SKAP" (also accepted: "LOER")
         ("_crc32", c_uint32),  # paks_crc() of everything from offset 8 up to the end of the file
-        ("_file_size", c_uint32),
-        ("_nb_boards", c_uint32),
+        ("_file_size", c_uint32), # total length of the paks file
+        ("_nb_boards", c_uint32), # number of following board headers (paks files can include multiple hardware versions with their own sections)
         ("_ext_len", c_uint32),  # extra bytes skipped between file header and first board header
         # Board header
         ("_board_magic", c_uint32),  # "DIDB"
         ("_board_crc32", c_uint32),  # paks_crc() from _hwver up to the end of the board's data
-        ("_hwver", c_char * 32),  # board id, e.g. "IPC_560SD88MPW"; matched against the device's board type
-        ("_fwver", c_char * 32),  # upgrade is refused if equal to the currently installed version
+        ("_hwver", c_char * 32),  # hardware version, e.g. "IPC_560SD88MPW"; matched against the device's board type
+        ("_fwver", c_char * 32),  # upgrade is refused if equal to the currently installed version specified in [app]/version.json
         ("_data_size", c_uint32),  # size of everything following the board header (image headers + data)
-        ("_nb_sections", c_uint32),
+        ("_nb_sections", c_uint32), # number of following sections for this board
         ("_board_ext_len", c_uint32),  # extra bytes skipped between board header and first image header
     ]
 
@@ -224,10 +220,10 @@ class PAKSSection(_Base):
         ("_checksum", c_uint32),  # paks_crc() of the image data only (excluding header and extra bytes)
         ("_name", c_char * 32),  # partition name
         ("_version", c_char * 32),  # image is skipped if the device already has this name with this version
-        ("_len", c_uint32),
+        ("_len", c_uint32), # total length of the image itself
         ("_flash_offset", c_uint32),  # absolute flash address the image is written to (0xffffffff: not flashed)
-        ("_partition_size", c_uint32),
-        ("_ext_len", c_uint32),
+        ("_partition_size", c_uint32), # size of the flash partition on the device
+        ("_ext_len", c_uint32), # extra bytes skipped between image header and image data
     ]
 
     @property
